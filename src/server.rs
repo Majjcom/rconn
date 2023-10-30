@@ -3,10 +3,11 @@ use rayon::{ThreadPool, ThreadPoolBuilder};
 use serde_json::{de, Value};
 use std::io::Read;
 use std::net::{TcpListener, TcpStream};
+use std::sync::{Arc, Mutex};
 
 pub struct Server {
     tcp: TcpListener,
-    matcher: Option<&'static FnMatcher>,
+    matcher: Option<Arc<Mutex<FnMatcher>>>,
     pool: ThreadPool,
 }
 
@@ -19,10 +20,11 @@ fn get_stream_header_size(s: &mut TcpStream) -> usize {
         size += &readed_size;
     }
     let mut size: usize = 0;
-    for i in 0..8 {
+    for i in 0..7 {
         size += buff[i] as usize;
         size <<= 1;
     }
+    size += buff[7] as usize;
     size
 }
 
@@ -35,6 +37,18 @@ fn get_header_json(s: &mut TcpStream, header_size: usize) -> Value {
         size += &readed_size;
     }
     de::from_slice(&header_buffer).unwrap()
+}
+
+fn get_custom_data(s: &mut TcpStream, header: &Value) -> Vec<u8> {
+    let val_size = header.get("custom_data_size").unwrap();
+    let size = val_size.as_u64().unwrap() as usize;
+    let mut data = Vec::<u8>::new();
+    let mut buffer: [u8; 4096] = [0; 4096];
+    while data.len() != size {
+        let readed_size = s.read(buffer.as_mut_slice()).unwrap();
+        data.extend(&buffer[..readed_size]);
+    }
+    data
 }
 
 impl Server {
@@ -50,21 +64,37 @@ impl Server {
 
     pub fn start(&mut self) {
         for stream in self.tcp.incoming() {
-            match stream {
-                Ok(mut s) => self.pool.spawn(move || loop {
-                    // Read Start
-                    let header_size = get_stream_header_size(&mut s);
-                    let header_data = get_header_json(&mut s, header_size);
-                    println!("Data: {:?}", header_data);
-                }),
-                Err(_) => (),
+            match &self.matcher {
+                Some(matcher) => {
+                    let matcher = matcher.clone();
+                    match stream {
+                        Ok(mut s) => self.pool.spawn(move || loop {
+                            // Read Start
+                            let header_size = get_stream_header_size(&mut s);
+                            let header_data = get_header_json(&mut s, header_size);
+                            println!("header: {:?}", header_data);
+                            let custom_data = get_custom_data(&mut s, &header_data);
+                            println!(
+                                "custom_data: {}",
+                                String::from_utf8(custom_data.clone()).unwrap()
+                            );
+                            // Handle
+                            let act = header_data.get("act").unwrap().as_str().unwrap();
+                            let mut handle = matcher.lock().unwrap()(act);
+                            handle.handle(header_data, custom_data);
+                        }),
+                        Err(_) => (),
+                    }
+                }
+                None => println!("No Handler"),
             }
+            println!("One Connection Entered...");
         }
     }
 }
 
 impl RConnection for Server {
     fn set_matcher(&mut self, matcher: &'static FnMatcher) {
-        self.matcher = Some(matcher);
+        self.matcher = Some(Arc::new(Mutex::new(matcher)));
     }
 }

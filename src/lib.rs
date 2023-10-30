@@ -5,11 +5,11 @@ pub mod conn;
 
 #[cfg(test)]
 mod tests {
-    use crate::server;
+    use crate::server::Server;
 
     #[test]
-    fn run_server() {
-        let mut s = server::Server::new("0.0.0.0:5000");
+    fn server_test() {
+        let mut s = Server::new("0.0.0.0:5000");
         s.start();
     }
 }
