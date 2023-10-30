@@ -72,12 +72,7 @@ impl Server {
                             // Read Start
                             let header_size = get_stream_header_size(&mut s);
                             let header_data = get_header_json(&mut s, header_size);
-                            println!("header: {:?}", header_data);
                             let custom_data = get_custom_data(&mut s, &header_data);
-                            println!(
-                                "custom_data: {}",
-                                String::from_utf8(custom_data.clone()).unwrap()
-                            );
                             // Handle
                             let act = header_data.get("act").unwrap().as_str().unwrap();
                             let mut handle = matcher.lock().unwrap()(act);
