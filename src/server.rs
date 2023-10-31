@@ -36,6 +36,7 @@ impl Server {
 
     pub fn start(&mut self) {
         for stream in self.tcp.incoming() {
+            println!("One Connection Entered...");
             match &self.matcher {
                 Some(matcher) => {
                     let matcher = matcher.clone();
@@ -65,7 +66,6 @@ impl Server {
                 }
                 None => println!("No Handler"),
             }
-            println!("One Connection Entered...");
         }
     }
 }
