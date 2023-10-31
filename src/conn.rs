@@ -1,3 +1,4 @@
+use std::net::TcpStream;
 pub use std::sync::{Arc, Mutex};
 
 use serde_json::Value;
@@ -7,7 +8,7 @@ pub type FnMatcher = dyn Fn(&str) -> THandle + Send + Sync;
 pub type THandle = Arc<Mutex<Box<dyn RHandle + 'static>>>;
 
 pub trait RHandle: Send {
-    fn handle(&mut self, json_data: Value, custom_data: Vec<u8>);
+    fn handle(&mut self, tcp: &mut TcpStream, json_data: &Value, custom_data: &Vec<u8>);
 }
 
 #[macro_export]
