@@ -18,11 +18,6 @@ mod tests {
     }
 
     rhandle_impl_new!(Handler);
-    // impl Handler {
-    //     fn new() -> THandle {
-    //         Arc::new(Mutex::new(Box::new(Handler { counter: 0 })))
-    //     }
-    // }
 
     impl Default for Handler {
         fn default() -> Self {
