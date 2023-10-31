@@ -68,15 +68,15 @@ impl Server {
                 Some(matcher) => {
                     let matcher = matcher.clone();
                     match stream {
-                        Ok(mut s) => self.pool.spawn(move || loop {
+                        Ok(mut s) => self.pool.spawn(move || {
                             // Read Start
                             let header_size = get_stream_header_size(&mut s);
                             let header_data = get_header_json(&mut s, header_size);
                             let custom_data = get_custom_data(&mut s, &header_data);
                             // Handle
                             let act = header_data.get("act").unwrap().as_str().unwrap();
-                            let mut handle = matcher.lock().unwrap()(act);
-                            handle.handle(header_data, custom_data);
+                            let handle = matcher.lock().unwrap()(act);
+                            handle.lock().unwrap().handle(header_data, custom_data);
                         }),
                         Err(_) => (),
                     }
