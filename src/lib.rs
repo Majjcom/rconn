@@ -1,7 +1,7 @@
 pub mod client;
-pub mod server;
-
 pub mod conn;
+pub mod server;
+pub use once_cell::sync::Lazy;
 
 #[cfg(test)]
 mod tests {
@@ -9,6 +9,7 @@ mod tests {
 
     use crate::{
         conn::{RConnection, RHandle, THandle},
+        rhandle_impl_new,
         server::Server,
     };
 
@@ -16,9 +17,16 @@ mod tests {
         counter: usize,
     }
 
-    impl Handler {
-        fn new() -> THandle {
-            Arc::new(Mutex::new(Box::new(Handler { counter: 0 })))
+    rhandle_impl_new!(Handler);
+    // impl Handler {
+    //     fn new() -> THandle {
+    //         Arc::new(Mutex::new(Box::new(Handler { counter: 0 })))
+    //     }
+    // }
+
+    impl Default for Handler {
+        fn default() -> Self {
+            Handler { counter: 0 }
         }
     }
 
@@ -33,7 +41,7 @@ mod tests {
         }
     }
 
-    use once_cell::sync::Lazy;
+    use crate::Lazy;
 
     static MAIN_HANDLER: Lazy<THandle> = Lazy::new(|| Handler::new());
 

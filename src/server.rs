@@ -1,11 +1,11 @@
 use crate::conn::*;
 use rayon::{ThreadPool, ThreadPoolBuilder};
-use serde_json::de;
+use serde_json::{de, Value};
 use std::io::Read;
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 
-pub use serde_json::Value;
+pub use serde_json;
 
 pub struct Server {
     tcp: TcpListener,
