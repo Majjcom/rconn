@@ -11,11 +11,11 @@ pub struct Server {
     pool: ThreadPool,
 }
 
-fn get_stream_header_size(s: &mut TcpStream) -> Result<usize, std::io::Error> {
+fn get_stream_header_size(s: &mut TcpStream) -> Result<u32, std::io::Error> {
     let mut buff = Vec::new();
-    buff.resize(8, 0u8);
+    buff.resize(4, 0u8);
     let mut size = 0;
-    while size != 8 {
+    while size != 4 {
         match s.read(&mut buff[size..]) {
             Ok(readed_size) if readed_size > 0 => size += readed_size,
             Ok(_) => {
@@ -27,22 +27,22 @@ fn get_stream_header_size(s: &mut TcpStream) -> Result<usize, std::io::Error> {
             Err(e) => return Err(e),
         }
     }
-    let mut size: usize = 0;
-    for i in 0..7 {
-        size += buff[i] as usize;
+    let mut size: u32 = 0;
+    for i in 0..3 {
+        size += buff[i] as u32;
         size <<= 1;
     }
-    size += buff[7] as usize;
+    size += buff[3] as u32;
     Ok(size)
 }
 
-fn get_header_json(s: &mut TcpStream, header_size: usize) -> Value {
+fn get_header_json(s: &mut TcpStream, header_size: u32) -> Value {
     let mut header_buffer = Vec::new();
-    header_buffer.resize(header_size, 0u8);
+    header_buffer.resize(header_size as usize, 0u8);
     let mut size = 0;
     while size != header_size {
-        let readed_size = s.read(&mut header_buffer[size..]).unwrap();
-        size += &readed_size;
+        let readed_size = s.read(&mut header_buffer[size as usize..]).unwrap();
+        size += readed_size as u32;
     }
     de::from_slice(&header_buffer).unwrap()
 }
@@ -53,7 +53,9 @@ fn get_custom_data(s: &mut TcpStream, header: &Value) -> Vec<u8> {
     let mut data = Vec::<u8>::new();
     let mut buffer: [u8; 4096] = [0; 4096];
     while data.len() != size {
-        let readed_size = s.read(buffer.as_mut_slice()).unwrap();
+        let rest = size - data.len();
+        let end = if rest > 4096 { 4096 } else { rest };
+        let readed_size = s.read(&mut buffer[..end]).unwrap();
         data.extend(&buffer[..readed_size]);
     }
     data

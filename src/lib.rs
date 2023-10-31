@@ -39,7 +39,10 @@ mod tests {
 
     fn matcher(act: &str) -> THandle {
         println!("Matcher: match {}", act);
-        MAIN_HANDLER.clone()
+        match act {
+            "hello" => MAIN_HANDLER.clone(),
+            _ => MAIN_HANDLER.clone(),
+        }
     }
 
     #[test]
