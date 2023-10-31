@@ -11,7 +11,7 @@ mod tests {
     };
 
     struct Handler;
-    impl super::conn::RHandle for Handler {
+    impl RHandle for Handler {
         fn handle(&mut self, json_data: serde_json::Value, custom_data: Vec<u8>) {
             println!("Handleing...");
             println!("Json Data: {:?}", json_data);
