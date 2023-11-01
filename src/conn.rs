@@ -5,7 +5,7 @@ use serde_json::Value;
 
 pub type FnMatcher = dyn Fn(&str) -> THandle + Send + Sync;
 
-pub type THandle = Arc<Mutex<Box<dyn RHandle + 'static>>>;
+pub type THandle = Arc<Mutex<Box<dyn RHandle>>>;
 
 pub trait RHandle: Send {
     fn handle(&mut self, tcp: &mut TcpStream, json_data: &Value, custom_data: &Vec<u8>);
