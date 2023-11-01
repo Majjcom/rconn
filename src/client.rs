@@ -15,6 +15,7 @@ pub struct Client {
 pub struct Readed {
     data: Value,
     custom_data: Vec<u8>,
+    act: String,
 }
 
 impl Client {
@@ -65,6 +66,7 @@ impl Client {
                 Readed {
                     custom_data: custom_data,
                     data: header_data.data,
+                    act: header_data.act,
                 }
             }
             Err(e) => return Err(e),
