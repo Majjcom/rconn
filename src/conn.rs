@@ -15,7 +15,7 @@ pub trait RHandle: Send {
 macro_rules! rhandle_impl_new {
     ($class:ident) => {
         impl $class {
-            fn new() -> THandle {
+            pub fn new() -> THandle {
                 Arc::new(Mutex::new(Box::new($class::default())))
             }
         }

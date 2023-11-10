@@ -2,8 +2,9 @@ use super::net_service::*;
 use crate::conn::*;
 use rayon::{ThreadPool, ThreadPoolBuilder};
 pub use serde;
+use serde::Serialize;
 pub use serde_json;
-use serde_json::Value;
+use serde_json::{to_value, Value};
 use std::net::{TcpListener, TcpStream};
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
@@ -34,9 +35,18 @@ impl Server {
         send_data(tcp, &header, custom_data);
     }
 
+    pub fn send_json_data<T: Serialize>(tcp: &mut TcpStream, json_data: T, custom_data: &Vec<u8>) {
+        let header = DefaultHeader {
+            act: String::from("resp"),
+            custom_data_size: custom_data.len(),
+            data: to_value(json_data).unwrap(),
+        };
+        send_data(tcp, &header, custom_data);
+    }
+
     pub fn start(&mut self) {
         for stream in self.tcp.incoming() {
-            println!("One Connection Entered...");
+            // println!("One Connection Entered...");
             match &self.matcher {
                 Some(matcher) => {
                     let matcher = matcher.clone();
@@ -56,7 +66,7 @@ impl Server {
                                     );
                                 }
                                 Err(_) => {
-                                    println!("Connrction closed...");
+                                    // println!("Connection closed...");
                                     break;
                                 }
                             }

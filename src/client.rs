@@ -13,13 +13,13 @@ pub struct Client {
 
 #[derive(Debug)]
 pub struct Readed {
-    data: Value,
-    custom_data: Vec<u8>,
-    act: String,
+    pub data: Value,
+    pub custom_data: Vec<u8>,
+    pub act: String,
 }
 
 impl Client {
-    pub fn new(addr: &str, port: u16, tiemout: u32) -> Result<Client, std::io::Error> {
+    pub fn new(addr: &str, port: u16, timeout: u32) -> Result<Client, std::io::Error> {
         let addr = match addr.parse::<Ipv4Addr>() {
             Ok(a) => a,
             Err(_) => {
@@ -30,7 +30,7 @@ impl Client {
             }
         };
         let addr = SocketAddr::V4(SocketAddrV4::new(addr, port));
-        let tcp = match TcpStream::connect_timeout(&addr, Duration::from_millis(tiemout as u64)) {
+        let tcp = match TcpStream::connect_timeout(&addr, Duration::from_millis(timeout as u64)) {
             Ok(t) => t,
             Err(e) => {
                 return Err(e);
@@ -64,7 +64,7 @@ impl Client {
                 let header_data = get_header_json(&mut self.tcp, header_size);
                 let custom_data = get_custom_data(&mut self.tcp, &header_data);
                 Readed {
-                    custom_data: custom_data,
+                    custom_data,
                     data: header_data.data,
                     act: header_data.act,
                 }
