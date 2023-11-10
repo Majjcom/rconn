@@ -9,7 +9,4 @@ mod net_service;
 mod tests {
     mod client;
     mod server;
-    
-
-    
 }

@@ -12,7 +12,7 @@ pub struct Client {
 }
 
 #[derive(Debug)]
-pub struct Readed {
+pub struct ReadContent {
     pub data: Value,
     pub custom_data: Vec<u8>,
     pub act: String,
@@ -53,17 +53,17 @@ impl Client {
         act: &str,
         json_data: &Value,
         custom_data: &Vec<u8>,
-    ) -> Result<Readed, std::io::Error> {
+    ) -> Result<ReadContent, std::io::Error> {
         self.send(act, json_data, custom_data);
         self.read()
     }
 
-    pub fn read(&mut self) -> Result<Readed, std::io::Error> {
+    pub fn read(&mut self) -> Result<ReadContent, std::io::Error> {
         let read = match get_stream_header_size(&mut self.tcp) {
             Ok(header_size) => {
                 let header_data = get_header_json(&mut self.tcp, header_size);
                 let custom_data = get_custom_data(&mut self.tcp, &header_data);
-                Readed {
+                ReadContent {
                     custom_data,
                     data: header_data.data,
                     act: header_data.act,
