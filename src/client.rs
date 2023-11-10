@@ -59,7 +59,7 @@ impl Client {
     }
 
     pub fn read(&mut self) -> Result<Readed, std::io::Error> {
-        let readed = match get_stream_header_size(&mut self.tcp) {
+        let read = match get_stream_header_size(&mut self.tcp) {
             Ok(header_size) => {
                 let header_data = get_header_json(&mut self.tcp, header_size);
                 let custom_data = get_custom_data(&mut self.tcp, &header_data);
@@ -71,6 +71,6 @@ impl Client {
             }
             Err(e) => return Err(e),
         };
-        Ok(readed)
+        Ok(read)
     }
 }
