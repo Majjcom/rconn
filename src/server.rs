@@ -16,9 +16,9 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn new(addr: &str) -> Server {
+    pub fn new(addr: &str, threads: usize) -> Server {
         let tcp = TcpListener::bind(addr).unwrap();
-        let pool = ThreadPoolBuilder::new().num_threads(16).build().unwrap();
+        let pool = ThreadPoolBuilder::new().num_threads(threads).build().unwrap();
         Server {
             tcp,
             matcher: None,
