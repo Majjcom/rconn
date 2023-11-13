@@ -18,7 +18,7 @@ use rconn::{
     rhandle_impl_new,
     server::{
         serde::Serialize,
-        serde_json::{to_value, Value},
+        serde_json::Value,
         Server,
     },
     Lazy,
@@ -44,27 +44,25 @@ impl RHandle for Handler {
         let resp = Response {
             result: String::from("OK"),
         };
-        let json_data = to_value(resp).unwrap();
         let cusd = Vec::new();
-        Server::send_data(tcp, &json_data, &cusd);
-        println!("End Hendle...");
+        Server::send_json_data(tcp, &resp, &cusd);
     }
 }
 
 static MAIN_HANDLER: Lazy<THandle> = Lazy::new(|| Handler::new());
 
 fn matcher(act: &str) -> THandle {
+    println!("Matcher: match {}", act);
     match act {
         _ => MAIN_HANDLER.clone(),
     }
 }
 
 fn main() {
-    let mut s = Server::new("0.0.0.0:5000");
+    let mut s = Server::new("0.0.0.0:5000", 16);
     s.set_matcher(&matcher);
     s.start();
 }
-
 ```
 
 ### Client
