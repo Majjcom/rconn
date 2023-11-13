@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Majjcom"]
 description = "A simple network protocol."
-license = "MIT"
 license-file = "LICENSE"
 homepage = "https://github.com/Majjcom/rconn"
 repository = "https://github.com/Majjcom/rconn"
