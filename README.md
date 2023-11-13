@@ -30,7 +30,7 @@ rhandle_impl_new!(Handler);
 
 impl Default for Handler {
     fn default() -> Self {
-        Handler { counter: 0 }
+        Handler {}
     }
 }
 
