@@ -6,11 +6,8 @@ use std::{
 use crate::{
     conn::{RConnection, RHandle, THandle},
     rhandle_impl_new,
-    server::{
-        serde::Serialize,
-        serde_json::Value,
-        Server,
-    },
+    server::{serde::Serialize, serde_json::Value, Server},
+    Lazy,
 };
 
 struct Handler;
@@ -29,16 +26,14 @@ struct Response {
 }
 
 impl RHandle for Handler {
-    fn handle(&mut self, tcp: &mut TcpStream, json_data: &Value, custom_data: &Vec<u8>) {
+    fn handle(&mut self, tcp: &mut TcpStream, _: &Value, _: &Vec<u8>) {
         let resp = Response {
             result: String::from("OK"),
         };
         let cusd = Vec::new();
-        Server::send_json_data(tcp, &resp, &cusd);
+        Server::send_data(tcp, &resp, &cusd);
     }
 }
-
-use crate::Lazy;
 
 static MAIN_HANDLER: Lazy<THandle> = Lazy::new(|| Handler::new());
 

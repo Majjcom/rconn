@@ -1,14 +1,14 @@
 use crate::net_service::*;
 pub use serde;
+use serde::Serialize;
 pub use serde_json;
-use serde_json::Value;
+use serde_json::{to_value, Value};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream};
 use std::str::FromStr;
 use std::time::Duration;
 
 pub struct Client {
     tcp: TcpStream,
-    // matcher: Option<Arc<Mutex<FnMatcher>>>,
 }
 
 #[derive(Debug)]
@@ -39,19 +39,19 @@ impl Client {
         Ok(Client { tcp })
     }
 
-    pub fn send(&mut self, act: &str, json_data: &Value, custom_data: &Vec<u8>) {
+    pub fn send<T: Serialize>(&mut self, act: &str, json_data: &T, custom_data: &Vec<u8>) {
         let header = DefaultHeader {
             act: String::from_str(act).unwrap(),
             custom_data_size: custom_data.len(),
-            data: json_data.clone(),
+            data: to_value(json_data).unwrap(),
         };
         send_data(&mut self.tcp, &header, custom_data);
     }
 
-    pub fn request(
+    pub fn request<T: Serialize>(
         &mut self,
         act: &str,
-        json_data: &Value,
+        json_data: &T,
         custom_data: &Vec<u8>,
     ) -> Result<ReadContent, std::io::Error> {
         self.send(act, json_data, custom_data);

@@ -4,9 +4,8 @@ use rayon::{ThreadPool, ThreadPoolBuilder};
 pub use serde;
 use serde::Serialize;
 pub use serde_json;
-use serde_json::{to_value, Value};
+use serde_json::to_value;
 use std::net::{TcpListener, TcpStream};
-use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
 pub struct Server {
@@ -18,7 +17,10 @@ pub struct Server {
 impl Server {
     pub fn new(addr: &str, threads: usize) -> Server {
         let tcp = TcpListener::bind(addr).unwrap();
-        let pool = ThreadPoolBuilder::new().num_threads(threads).build().unwrap();
+        let pool = ThreadPoolBuilder::new()
+            .num_threads(threads)
+            .build()
+            .unwrap();
         Server {
             tcp,
             matcher: None,
@@ -26,16 +28,7 @@ impl Server {
         }
     }
 
-    pub fn send_data(tcp: &mut TcpStream, json_data: &Value, custom_data: &Vec<u8>) {
-        let header = DefaultHeader {
-            act: String::from_str("resp").unwrap(),
-            custom_data_size: custom_data.len(),
-            data: json_data.clone(),
-        };
-        send_data(tcp, &header, custom_data);
-    }
-
-    pub fn send_json_data<T: Serialize>(tcp: &mut TcpStream, json_data: T, custom_data: &Vec<u8>) {
+    pub fn send_data<T: Serialize>(tcp: &mut TcpStream, json_data: T, custom_data: &Vec<u8>) {
         let header = DefaultHeader {
             act: String::from("resp"),
             custom_data_size: custom_data.len(),
@@ -46,7 +39,6 @@ impl Server {
 
     pub fn start(&mut self) {
         for stream in self.tcp.incoming() {
-            // println!("One Connection Entered...");
             match &self.matcher {
                 Some(matcher) => {
                     let matcher = matcher.clone();
@@ -66,7 +58,6 @@ impl Server {
                                     );
                                 }
                                 Err(_) => {
-                                    // println!("Connection closed...");
                                     break;
                                 }
                             }
