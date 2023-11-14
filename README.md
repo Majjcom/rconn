@@ -16,11 +16,7 @@ use std::{
 use rconn::{
     conn::{RConnection, RHandle, THandle},
     rhandle_impl_new,
-    server::{
-        serde::Serialize,
-        serde_json::Value,
-        Server,
-    },
+    server::{serde::Serialize, serde_json::Value, Server},
     Lazy,
 };
 
@@ -40,12 +36,12 @@ struct Response {
 }
 
 impl RHandle for Handler {
-    fn handle(&mut self, tcp: &mut TcpStream, json_data: &Value, custom_data: &Vec<u8>) {
+    fn handle(&mut self, tcp: &mut TcpStream, _: &Value, _: &Vec<u8>) {
         let resp = Response {
             result: String::from("OK"),
         };
         let cusd = Vec::new();
-        Server::send_json_data(tcp, &resp, &cusd);
+        Server::send_data(tcp, &resp, &cusd);
     }
 }
 
@@ -70,7 +66,6 @@ fn main() {
 ```rust
 use crate::client::{
     serde::{Deserialize, Serialize},
-    serde_json::to_value,
     Client,
 };
 
@@ -79,7 +74,7 @@ struct Test;
 
 fn main() {
     let mut client = Client::new("127.0.0.1", 5000, 10000).unwrap();
-    let ndata = to_value(Test {}).unwrap();
+    let ndata = Test {};
     let cusd = Vec::new();
     let readed = client.request("test", &ndata, &cusd).unwrap();
     println!("Get: {:?}", readed);
