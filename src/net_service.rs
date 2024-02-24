@@ -28,28 +28,42 @@ pub fn get_stream_header_size(s: &mut TcpStream) -> Result<u32, std::io::Error> 
     Ok(size)
 }
 
-pub fn get_header_json(s: &mut TcpStream, header_size: u32) -> DefaultHeader {
+pub fn get_header_json(s: &mut TcpStream, header_size: u32) -> Result<DefaultHeader, ()> {
     let mut header_buffer = Vec::new();
     header_buffer.resize(header_size as usize, 0u8);
     let mut size = 0;
     while size != header_size {
-        let read_size = s.read(&mut header_buffer[size as usize..]).unwrap();
+        let read_size = s.read(&mut header_buffer[size as usize..]);
+        let read_size = match read_size {
+            Ok(r) => r,
+            Err(_) => return Err(()),
+        };
         size += read_size as u32;
     }
-    from_slice(&header_buffer).unwrap()
+    let json = from_slice(&header_buffer);
+    if let Ok(j) = json {
+        Ok(j)
+    } else {
+        Err(())
+    }
 }
 
-pub fn get_custom_data(s: &mut TcpStream, header: &DefaultHeader) -> Vec<u8> {
+pub fn get_custom_data(s: &mut TcpStream, header: &DefaultHeader) -> Result<Vec<u8>, ()> {
     let size = header.custom_data_size;
     let mut data = Vec::<u8>::new();
     let mut buffer: [u8; 4096] = [0; 4096];
     while data.len() != size {
         let rest = size - data.len();
         let end = if rest > 4096 { 4096 } else { rest };
-        let read_size = s.read(&mut buffer[..end]).unwrap();
+        let read_size = s.read(&mut buffer[..end]);
+        let read_size = if let Ok(s) = read_size {
+            s
+        } else {
+            return Err(());
+        };
         data.extend(&buffer[..read_size]);
     }
-    data
+    Ok(data)
 }
 
 pub fn send_data(s: &mut TcpStream, header: &DefaultHeader, custom_data: &Vec<u8>) {

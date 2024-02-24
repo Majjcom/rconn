@@ -5,7 +5,7 @@ pub use serde;
 use serde::Serialize;
 pub use serde_json;
 use serde_json::to_value;
-use std::net::{TcpListener, TcpStream};
+use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 
 pub struct Server {
@@ -42,28 +42,36 @@ impl Server {
             match &self.matcher {
                 Some(matcher) => {
                     let matcher = matcher.clone();
-                    match stream {
-                        Ok(mut s) => self.pool.spawn(move || loop {
-                            match get_stream_header_size(&mut s) {
-                                Ok(header_size) => {
-                                    // Read Start
-                                    let header_data = get_header_json(&mut s, header_size);
-                                    let custom_data = get_custom_data(&mut s, &header_data);
-                                    // Handle
-                                    let handle = matcher.lock().unwrap()(&header_data.act);
-                                    handle.lock().unwrap().handle(
-                                        &mut s,
-                                        &header_data.data,
-                                        &custom_data,
-                                    );
-                                }
-                                Err(_) => {
-                                    break;
-                                }
-                            }
-                        }),
-                        Err(_) => (),
+                    if let Err(_) = stream {
+                        return ();
                     }
+                    let mut s = stream.unwrap();
+                    let cs = s.try_clone().unwrap();
+                    self.pool.spawn(move || loop {
+                        let header_size = get_stream_header_size(&mut s);
+                        let header_size = match header_size {
+                            Ok(s) => s,
+                            Err(_) => break,
+                        };
+                        // Read Start
+                        let header_data = get_header_json(&mut s, header_size);
+                        let header_data = match header_data {
+                            Ok(d) => d,
+                            Err(_) => break,
+                        };
+                        let custom_data = get_custom_data(&mut s, &header_data);
+                        let custom_data = match custom_data {
+                            Ok(d) => d,
+                            Err(_) => break,
+                        };
+                        // Handle
+                        let handle = matcher.lock().unwrap()(&header_data.act);
+                        handle
+                            .lock()
+                            .unwrap()
+                            .handle(&mut s, &header_data.data, &custom_data);
+                    });
+                    cs.shutdown(Shutdown::Both).unwrap();
                 }
                 None => println!("No Handler"),
             }

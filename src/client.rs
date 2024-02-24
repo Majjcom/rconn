@@ -53,23 +53,31 @@ impl Client {
         act: &str,
         json_data: &T,
         custom_data: &Vec<u8>,
-    ) -> Result<ReadContent, std::io::Error> {
+    ) -> Result<ReadContent, ()> {
         self.send(act, json_data, custom_data);
         self.read()
     }
 
-    pub fn read(&mut self) -> Result<ReadContent, std::io::Error> {
+    pub fn read(&mut self) -> Result<ReadContent, ()> {
         let read = match get_stream_header_size(&mut self.tcp) {
             Ok(header_size) => {
                 let header_data = get_header_json(&mut self.tcp, header_size);
+                let header_data = match header_data {
+                    Ok(d) => d,
+                    Err(_) => return Err(()),
+                };
                 let custom_data = get_custom_data(&mut self.tcp, &header_data);
+                let custom_data = match custom_data {
+                    Ok(d) => d,
+                    Err(_) => return Err(()),
+                };
                 ReadContent {
                     custom_data,
                     data: header_data.data,
                     act: header_data.act,
                 }
             }
-            Err(e) => return Err(e),
+            Err(_) => return Err(()),
         };
         Ok(read)
     }
