@@ -46,23 +46,31 @@ impl Server {
                         return ();
                     }
                     let mut s = stream.unwrap();
-                    let cs = s.try_clone().unwrap();
                     self.pool.spawn(move || loop {
                         let header_size = get_stream_header_size(&mut s);
                         let header_size = match header_size {
                             Ok(s) => s,
-                            Err(_) => break,
+                            Err(_) => {
+                                s.shutdown(Shutdown::Both).ok();
+                                break;
+                            }
                         };
                         // Read Start
                         let header_data = get_header_json(&mut s, header_size);
                         let header_data = match header_data {
                             Ok(d) => d,
-                            Err(_) => break,
+                            Err(_) => {
+                                s.shutdown(Shutdown::Both).ok();
+                                break;
+                            }
                         };
                         let custom_data = get_custom_data(&mut s, &header_data);
                         let custom_data = match custom_data {
                             Ok(d) => d,
-                            Err(_) => break,
+                            Err(_) => {
+                                s.shutdown(Shutdown::Both).ok();
+                                break;
+                            }
                         };
                         // Handle
                         let handle = matcher.lock().unwrap()(&header_data.act);
@@ -71,7 +79,6 @@ impl Server {
                             .unwrap()
                             .handle(&mut s, &header_data.data, &custom_data);
                     });
-                    cs.shutdown(Shutdown::Both).unwrap();
                 }
                 None => println!("No Handler"),
             }
