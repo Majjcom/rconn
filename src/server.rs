@@ -31,7 +31,7 @@ impl Server {
         }
     }
 
-    pub fn set_timeout(&mut self, dur: Option<Duration>) -> &Self {
+    pub fn set_timeout(&mut self, dur: Option<Duration>) -> &mut Self {
         self.timeout_dur = dur;
         self
     }
