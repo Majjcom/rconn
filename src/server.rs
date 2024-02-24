@@ -7,11 +7,13 @@ pub use serde_json;
 use serde_json::to_value;
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 pub struct Server {
     tcp: TcpListener,
     matcher: Option<Arc<Mutex<FnMatcher>>>,
     pool: ThreadPool,
+    timeout_dur: Option<Duration>,
 }
 
 impl Server {
@@ -25,7 +27,13 @@ impl Server {
             tcp,
             matcher: None,
             pool,
+            timeout_dur: None,
         }
+    }
+
+    pub fn set_timeout(&mut self, dur: Option<Duration>) -> &Self {
+        self.timeout_dur = dur;
+        self
     }
 
     pub fn send_data<T: Serialize>(tcp: &mut TcpStream, json_data: T, custom_data: &Vec<u8>) {
@@ -46,6 +54,8 @@ impl Server {
                         return ();
                     }
                     let mut s = stream.unwrap();
+                    s.set_read_timeout(self.timeout_dur).unwrap();
+                    s.set_write_timeout(self.timeout_dur).unwrap();
                     self.pool.spawn(move || loop {
                         let header_size = get_stream_header_size(&mut s);
                         let header_size = match header_size {
