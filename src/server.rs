@@ -4,7 +4,7 @@ use rayon::{ThreadPool, ThreadPoolBuilder};
 pub use serde;
 use serde::Serialize;
 pub use serde_json;
-use serde_json::to_value;
+use serde_json::{to_value, Value};
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -41,6 +41,15 @@ impl Server {
             act: String::from("resp"),
             custom_data_size: custom_data.len(),
             data: to_value(json_data).unwrap(),
+        };
+        send_data(tcp, &header, custom_data);
+    }
+
+    pub fn send_data_value(tcp: &mut TcpStream, json_value: &Value, custom_data: &Vec<u8>) {
+        let header = DefaultHeader {
+            act: String::from("resp"),
+            custom_data_size: custom_data.len(),
+            data: json_value.clone(),
         };
         send_data(tcp, &header, custom_data);
     }
