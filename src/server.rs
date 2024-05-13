@@ -74,6 +74,11 @@ impl Server {
                                 break;
                             }
                         };
+                        // header size check
+                        if header_size > 64 * 1024 * 1024 {
+                            s.shutdown(Shutdown::Both).ok();
+                            break;
+                        }
                         // Read Start
                         let header_data = get_header_json(&mut s, header_size);
                         let header_data = match header_data {
