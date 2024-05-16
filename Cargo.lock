@@ -85,7 +85,7 @@ dependencies = [
 
 [[package]]
 name = "rconn"
-version = "0.3.5"
+version = "0.3.6"
 dependencies = [
  "once_cell",
  "rayon",
