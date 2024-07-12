@@ -1,10 +1,13 @@
 use super::net_service::*;
+use crate::config;
 use crate::conn::*;
+use log::{debug, error, info, warn};
 use rayon::{ThreadPool, ThreadPoolBuilder};
 pub use serde;
 use serde::Serialize;
 pub use serde_json;
 use serde_json::{to_value, Value};
+use std::io::ErrorKind::Interrupted;
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -14,6 +17,8 @@ pub struct Server {
     matcher: Option<Arc<Mutex<FnMatcher>>>,
     pool: ThreadPool,
     timeout_dur: Option<Duration>,
+    max_stream_header_size: u64,
+    max_stream_size: u64,
 }
 
 impl Server {
@@ -28,11 +33,26 @@ impl Server {
             matcher: None,
             pool,
             timeout_dur: None,
+            max_stream_header_size: config::DEFAULT_MAX_STREAM_HEADER_SIZE,
+            max_stream_size: config::DEFAULT_MAX_STREAM_SIZE,
         }
+    }
+
+    pub fn set_max_stream_header_size(&mut self, size: u64) -> &mut Self {
+        self.max_stream_header_size = size;
+        debug!("Set max stream header size to {}", size);
+        self
+    }
+
+    pub fn set_max_stream_size(&mut self, size: u64) -> &mut Self {
+        self.max_stream_size = size;
+        debug!("Set max stream size to {}", size);
+        self
     }
 
     pub fn set_timeout(&mut self, dur: Option<Duration>) -> &mut Self {
         self.timeout_dur = dur;
+        debug!("set network timeout to {:?}", dur);
         self
     }
 
@@ -55,12 +75,15 @@ impl Server {
     }
 
     pub fn start(&mut self) {
+        let stream_header_max = self.max_stream_header_size;
+        let stream_max = self.max_stream_size;
         for stream in self.tcp.incoming() {
             match &self.matcher {
                 Some(matcher) => {
                     let matcher = matcher.clone();
                     if let Err(_) = stream {
-                        return ();
+                        error!("tcpstream {:?} can't clone stream.", stream);
+                        continue;
                     }
                     let mut s = stream.unwrap();
                     s.set_read_timeout(self.timeout_dur).unwrap();
@@ -69,14 +92,20 @@ impl Server {
                         let header_size = get_stream_header_size(&mut s);
                         let header_size = match header_size {
                             Ok(s) => s,
-                            Err(_) => {
+                            Err(e) => {
+                                if e.kind() == Interrupted {
+                                    debug!("Connection closed");
+                                } else {
+                                    debug!("Can't read header size");
+                                }
                                 s.shutdown(Shutdown::Both).ok();
                                 break;
                             }
                         };
                         // header size check
-                        if header_size > 64 * 1024 * 1024 {
+                        if header_size as u64 > stream_header_max {
                             s.shutdown(Shutdown::Both).ok();
+                            warn!("connection header size of {:?} is out of range", s);
                             break;
                         }
                         // Read Start
@@ -85,14 +114,16 @@ impl Server {
                             Ok(d) => d,
                             Err(_) => {
                                 s.shutdown(Shutdown::Both).ok();
+                                debug!("Fail to read header of {:?}", s);
                                 break;
                             }
                         };
-                        let custom_data = get_custom_data(&mut s, &header_data);
+                        let custom_data = get_custom_data(&mut s, &header_data, stream_max);
                         let custom_data = match custom_data {
                             Ok(d) => d,
                             Err(_) => {
                                 s.shutdown(Shutdown::Both).ok();
+                                debug!("Fail to read stream data of {:?}", s);
                                 break;
                             }
                         };
@@ -104,14 +135,17 @@ impl Server {
                             .handle(&mut s, &header_data.data, &custom_data);
                     });
                 }
-                None => println!("No Handler"),
+                None => {
+                    info!("matcher not matched of {:?}", stream)
+                }
             }
         }
     }
 }
 
 impl RConnection for Server {
-    fn set_matcher(&mut self, matcher: &'static FnMatcher) {
+    fn set_matcher(&mut self, matcher: &'static FnMatcher) -> &mut Self {
         self.matcher = Some(Arc::new(Mutex::new(matcher)));
+        self
     }
 }

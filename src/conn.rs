@@ -23,5 +23,5 @@ macro_rules! rhandle_impl_new {
 }
 
 pub trait RConnection {
-    fn set_matcher(&mut self, matcher: &'static FnMatcher);
+    fn set_matcher(&mut self, matcher: &'static FnMatcher) -> &mut Self;
 }

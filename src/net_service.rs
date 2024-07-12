@@ -1,3 +1,4 @@
+use log::warn;
 use serde::{Deserialize, Serialize};
 use serde_json::{from_slice, to_string, Value};
 use std::io::{Read, Write};
@@ -12,7 +13,7 @@ pub fn get_stream_header_size(s: &mut TcpStream) -> Result<u32, std::io::Error> 
             Ok(read_size) if read_size > 0 => size += read_size,
             Ok(_) => {
                 return Err(std::io::Error::new(
-                    std::io::ErrorKind::UnexpectedEof,
+                    std::io::ErrorKind::Interrupted,
                     "Connection closed",
                 ))
             }
@@ -48,8 +49,16 @@ pub fn get_header_json(s: &mut TcpStream, header_size: u32) -> Result<DefaultHea
     }
 }
 
-pub fn get_custom_data(s: &mut TcpStream, header: &DefaultHeader) -> Result<Vec<u8>, ()> {
+pub fn get_custom_data(
+    s: &mut TcpStream,
+    header: &DefaultHeader,
+    max_size: u64,
+) -> Result<Vec<u8>, ()> {
     let size = header.custom_data_size;
+    if size as u64 > max_size {
+        warn!("stream data size of {:?} is out of range", s);
+        return Err(());
+    }
     let mut data = Vec::<u8>::new();
     let mut buffer: [u8; 4096] = [0; 4096];
     while data.len() != size {

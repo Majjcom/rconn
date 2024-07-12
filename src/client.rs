@@ -1,3 +1,4 @@
+use crate::config;
 use crate::net_service::*;
 pub use serde;
 use serde::Serialize;
@@ -9,6 +10,8 @@ use std::time::Duration;
 
 pub struct Client {
     tcp: TcpStream,
+    max_stream_header_size: u64,
+    max_stream_size: u64,
 }
 
 #[derive(Debug)]
@@ -36,7 +39,11 @@ impl Client {
                 return Err(e);
             }
         };
-        Ok(Client { tcp })
+        Ok(Client {
+            tcp,
+            max_stream_header_size: config::DEFAULT_MAX_STREAM_HEADER_SIZE,
+            max_stream_size: config::DEFAULT_MAX_STREAM_SIZE,
+        })
     }
 
     pub fn send<T: Serialize>(&mut self, act: &str, json_data: &T, custom_data: &Vec<u8>) {
@@ -59,14 +66,19 @@ impl Client {
     }
 
     pub fn read(&mut self) -> Result<ReadContent, ()> {
+        let stream_max = self.max_stream_size;
+        let header_max = self.max_stream_header_size;
         let read = match get_stream_header_size(&mut self.tcp) {
             Ok(header_size) => {
+                if header_size as u64 > header_max {
+                    return Err(());
+                }
                 let header_data = get_header_json(&mut self.tcp, header_size);
                 let header_data = match header_data {
                     Ok(d) => d,
                     Err(_) => return Err(()),
                 };
-                let custom_data = get_custom_data(&mut self.tcp, &header_data);
+                let custom_data = get_custom_data(&mut self.tcp, &header_data, stream_max);
                 let custom_data = match custom_data {
                     Ok(d) => d,
                     Err(_) => return Err(()),
