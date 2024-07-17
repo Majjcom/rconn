@@ -91,7 +91,7 @@ dependencies = [
 
 [[package]]
 name = "rconn"
-version = "0.3.7"
+version = "0.3.8"
 dependencies = [
  "log",
  "once_cell",
