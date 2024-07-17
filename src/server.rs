@@ -105,7 +105,10 @@ impl Server {
                         // header size check
                         if header_size as u64 > stream_header_max {
                             s.shutdown(Shutdown::Both).ok();
-                            warn!("connection header size of {:?} is out of range", s);
+                            warn!(
+                                "connection header size({}) of {:?} is out of range",
+                                header_size, s
+                            );
                             break;
                         }
                         // Read Start

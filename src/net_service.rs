@@ -56,7 +56,7 @@ pub fn get_custom_data(
 ) -> Result<Vec<u8>, ()> {
     let size = header.custom_data_size;
     if size as u64 > max_size {
-        warn!("stream data size of {:?} is out of range", s);
+        warn!("stream data size({}) of {:?} is out of range", size, s);
         return Err(());
     }
     let mut data = Vec::<u8>::new();
