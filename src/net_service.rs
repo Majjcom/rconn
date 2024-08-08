@@ -36,7 +36,8 @@ pub fn get_header_json(s: &mut TcpStream, header_size: u32) -> Result<DefaultHea
     while size != header_size {
         let read_size = s.read(&mut header_buffer[size as usize..]);
         let read_size = match read_size {
-            Ok(r) => r,
+            Ok(r) if r > 0 => r,
+            Ok(_) => return Err(()),
             Err(_) => return Err(()),
         };
         size += read_size as u32;
@@ -65,10 +66,10 @@ pub fn get_custom_data(
         let rest = size - data.len();
         let end = if rest > 4096 { 4096 } else { rest };
         let read_size = s.read(&mut buffer[..end]);
-        let read_size = if let Ok(s) = read_size {
-            s
-        } else {
-            return Err(());
+        let read_size = match read_size {
+            Ok(r) if r > 0 => r,
+            Ok(_) => return Err(()),
+            Err(_) => return Err(()),
         };
         data.extend(&buffer[..read_size]);
     }
