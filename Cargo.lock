@@ -180,7 +180,7 @@ dependencies = [
 
 [[package]]
 name = "rconn"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "log",
  "once_cell",
