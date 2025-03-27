@@ -16,7 +16,7 @@ macro_rules! rhandle_impl_new {
     ($class:ident) => {
         impl $class {
             pub fn new() -> THandle {
-                Arc::new(Mutex::new(Box::new($class::default())))
+                std::sync::Arc::new(std::sync::Mutex::new(Box::new($class::default())))
             }
         }
     };
