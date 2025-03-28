@@ -23,23 +23,6 @@ pub fn get_stream_key(s: &mut TcpStream) -> Result<Vec<u8>, ()> {
     Ok(buffer)
 }
 
-pub fn wait_client(s: &mut TcpStream) -> Result<(), ()> {
-    let mut buffer = Vec::new();
-    buffer.resize(1, 0u8);
-    while buffer[0] != 0x01 {
-        match s.read(&mut buffer) {
-            Ok(read_size) if read_size > 0 => {}
-            Ok(_) => {
-                return Err(());
-            }
-            Err(_) => {
-                return Err(());
-            }
-        }
-    }
-    Ok(())
-}
-
 pub fn get_stream_header_size(s: &mut TcpStream) -> Result<u32, std::io::Error> {
     let mut buff = Vec::new();
     buff.resize(4, 0u8);

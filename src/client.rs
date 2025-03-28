@@ -5,7 +5,6 @@ pub use serde;
 use serde::Serialize;
 pub use serde_json;
 use serde_json::{to_value, Value};
-use std::io::Write;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream};
 use std::str::FromStr;
 use std::time::Duration;
