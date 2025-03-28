@@ -1,3 +1,4 @@
+use super::crypto::RCipher;
 use log::warn;
 use serde::{Deserialize, Serialize};
 use serde_json::{from_slice, to_string, Value};
@@ -29,7 +30,11 @@ pub fn get_stream_header_size(s: &mut TcpStream) -> Result<u32, std::io::Error> 
     Ok(size)
 }
 
-pub fn get_header_json(s: &mut TcpStream, header_size: u32) -> Result<DefaultHeader, ()> {
+pub fn get_header_json(
+    s: &mut TcpStream,
+    header_size: u32,
+    cipher: &RCipher,
+) -> Result<DefaultHeader, ()> {
     let mut header_buffer = Vec::new();
     header_buffer.resize(header_size as usize, 0u8);
     let mut size = 0;
@@ -42,7 +47,12 @@ pub fn get_header_json(s: &mut TcpStream, header_size: u32) -> Result<DefaultHea
         };
         size += read_size as u32;
     }
-    let json = from_slice(&header_buffer);
+    let data = if let Ok(r) = cipher.decript_data(&header_buffer) {
+        r
+    } else {
+        return Err(());
+    };
+    let json = from_slice(&data);
     if let Ok(j) = json {
         Ok(j)
     } else {
@@ -54,6 +64,7 @@ pub fn get_custom_data(
     s: &mut TcpStream,
     header: &DefaultHeader,
     max_size: u64,
+    cipher: &RCipher,
 ) -> Result<Vec<u8>, ()> {
     let size = header.custom_data_size;
     if size as u64 > max_size {
@@ -71,7 +82,12 @@ pub fn get_custom_data(
             Ok(_) => return Err(()),
             Err(_) => return Err(()),
         };
-        data.extend(&buffer[..read_size]);
+        let buffer_decoded = cipher.decript_data(&buffer[..read_size]);
+        if let Ok(r) = buffer_decoded {
+            data.extend(r);
+        } else {
+            return Err(());
+        }
     }
     Ok(data)
 }

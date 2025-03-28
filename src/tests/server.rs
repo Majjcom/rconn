@@ -1,3 +1,4 @@
+use crate::crypto::RCipher;
 use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -20,7 +21,7 @@ struct Response {
 }
 
 impl RHandle for Handler {
-    fn handle(&mut self, tcp: &mut TcpStream, data: &Value, _: &Vec<u8>) {
+    fn handle(&mut self, tcp: &mut TcpStream, data: &Value, _: &Vec<u8>, _: &RCipher) {
         let resp = Response {
             result: String::from("OK"),
         };
