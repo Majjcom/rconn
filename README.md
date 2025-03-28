@@ -2,23 +2,15 @@
 
 This is a simple network service with its own protocol.
 
-
 ## Usage
 
 ### Create a server
 
 ```rust
-use std::{
-    net::TcpStream,
-    sync::{Arc, Mutex},
-};
-
-use rconn::{
-    conn::{RConnection, RHandle, THandle},
-    rhandle_impl_new,
-    server::{serde::Serialize, serde_json::Value, Server},
-    Lazy,
-};
+use std::net::TcpStream;
+use rconn::prelude::*;
+use serde::Serialize;
+use serde_json::Value;
 
 struct Handler;
 
@@ -36,12 +28,12 @@ struct Response {
 }
 
 impl RHandle for Handler {
-    fn handle(&mut self, tcp: &mut TcpStream, _: &Value, _: &Vec<u8>) {
+    fn handle(&mut self, tcp: &mut TcpStream, _: &Value, _: &Vec<u8>, cipher: &RCipher) {
         let resp = Response {
             result: String::from("OK"),
         };
         let cusd = Vec::new();
-        Server::send_data(tcp, &resp, &cusd);
+        Server::send_data(tcp, &resp, &cusdm, cipher);
     }
 }
 
@@ -73,7 +65,7 @@ use crate::client::{
 struct Test;
 
 fn main() {
-    let mut client = Client::new("127.0.0.1", 5000, 10000).unwrap();
+    let mut client = Client::new("127.0.0.1", 5000, 10000, "").unwrap();
     let ndata = Test {};
     let cusd = Vec::new();
     let readed = client.request("test", &ndata, &cusd).unwrap();

@@ -10,10 +10,10 @@ pub struct RCipher {
 }
 
 impl RCipher {
-    pub fn new(key: &[u8; 16], const_key: &str) -> std::io::Result<Self> {
+    pub fn new(key: &[u8], const_key: &[u8]) -> std::io::Result<Self> {
         let mut hasher = Sha256::new();
         hasher.write(key)?;
-        hasher.write(const_key.as_bytes())?;
+        hasher.write(const_key)?;
         let key = hasher.finalize();
         let key = key.as_slice();
         let key = Key::<Aes128>::from(GenericArray::clone_from_slice(&key[0..16]));
@@ -31,11 +31,12 @@ impl RCipher {
     }
 
     pub fn encript_data(&self, data: &[u8]) -> Vec<u8> {
-        let mut data = data.to_vec();
-        let padding_size = 16 - data.len() % 16;
-        for _ in 0..padding_size {
-            data.push(padding_size as u8);
+        if data.len() == 0 {
+            return vec![];
         }
+        let mut data = Vec::from(data);
+        let padding_size = 16 - data.len() % 16;
+        data.resize(data.len() + padding_size, padding_size as u8);
         for i in 0..(data.len() / 16) {
             let from = i * 16;
             self.cipher
@@ -45,13 +46,16 @@ impl RCipher {
     }
 
     pub fn decript_data(&self, data: &[u8]) -> std::io::Result<Vec<u8>> {
+        if data.len() == 0 {
+            return Ok(vec![]);
+        }
         if data.len() % 16 != 0 {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
                 "Invalid data length",
             ));
         }
-        let mut data = data.to_vec();
+        let mut data = Vec::from(data);
         for i in 0..(data.len() / 16) {
             let from = i * 16;
             self.cipher
@@ -61,7 +65,7 @@ impl RCipher {
             std::io::ErrorKind::InvalidData,
             "Invalid padding size",
         ))?;
-        let data = data.split_off(data.len() - *padding_size as usize);
-        Ok(data)
+        let data = &data[..data.len() - *padding_size as usize];
+        Ok(Vec::from(data))
     }
 }

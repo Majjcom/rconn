@@ -75,22 +75,40 @@ impl Server {
         self
     }
 
-    pub fn send_data<T: Serialize>(tcp: &mut TcpStream, json_data: T, custom_data: &Vec<u8>) {
+    pub fn send_data<T: Serialize>(
+        tcp: &mut TcpStream,
+        json_data: T,
+        custom_data: &Vec<u8>,
+        cipher: &RCipher,
+    ) {
+        let mut cuslen = custom_data.len();
+        if cuslen > 0 {
+            cuslen = cuslen + (16 - cuslen % 16);
+        }
         let header = DefaultHeader {
             act: String::from("resp"),
-            custom_data_size: custom_data.len(),
+            custom_data_size: cuslen,
             data: to_value(json_data).unwrap(),
         };
-        send_data(tcp, &header, custom_data);
+        send_data(tcp, &header, custom_data, cipher);
     }
 
-    pub fn send_data_value(tcp: &mut TcpStream, json_value: &Value, custom_data: &Vec<u8>) {
+    pub fn send_data_value(
+        tcp: &mut TcpStream,
+        json_value: &Value,
+        custom_data: &Vec<u8>,
+        cipher: &RCipher,
+    ) {
+        let mut cuslen = custom_data.len();
+        if cuslen > 0 {
+            cuslen = cuslen + (16 - cuslen % 16);
+        }
         let header = DefaultHeader {
             act: String::from("resp"),
-            custom_data_size: custom_data.len(),
+            custom_data_size: cuslen,
             data: json_value.clone(),
         };
-        send_data(tcp, &header, custom_data);
+        send_data(tcp, &header, custom_data, cipher);
     }
 
     pub fn start(&mut self) {
@@ -132,14 +150,19 @@ impl Server {
                     "Generated key: {}.",
                     String::from_utf8_lossy(&generated_key)
                 );
-                if let Err(_) = s.write(&generated_key) {
+
+                // Send key
+                if let Ok(r) = s.write(&generated_key) {
+                    debug!("Send Key success: {}.", r);
+                    s.flush().unwrap();
+                } else {
                     error!("Send key failed.");
                     s.shutdown(Shutdown::Both).ok();
                     return;
                 }
 
                 // Create cipher
-                let cipher = if let Ok(r) = RCipher::new(&generated_key, const_key.as_str()) {
+                let cipher = if let Ok(r) = RCipher::new(&generated_key, const_key.as_bytes()) {
                     r
                 } else {
                     error!("Create RCipher Failed.");

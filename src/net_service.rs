@@ -5,6 +5,41 @@ use serde_json::{from_slice, to_string, Value};
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
+pub fn get_stream_key(s: &mut TcpStream) -> Result<Vec<u8>, ()> {
+    let mut buffer = Vec::new();
+    buffer.resize(16, 0u8);
+    let mut size = 0;
+    while size != 16 {
+        match s.read(&mut buffer[size..]) {
+            Ok(read_size) if read_size > 0 => size += read_size,
+            Ok(_) => {
+                return Err(());
+            }
+            Err(_) => {
+                return Err(());
+            }
+        }
+    }
+    Ok(buffer)
+}
+
+pub fn wait_client(s: &mut TcpStream) -> Result<(), ()> {
+    let mut buffer = Vec::new();
+    buffer.resize(1, 0u8);
+    while buffer[0] != 0x01 {
+        match s.read(&mut buffer) {
+            Ok(read_size) if read_size > 0 => {}
+            Ok(_) => {
+                return Err(());
+            }
+            Err(_) => {
+                return Err(());
+            }
+        }
+    }
+    Ok(())
+}
+
 pub fn get_stream_header_size(s: &mut TcpStream) -> Result<u32, std::io::Error> {
     let mut buff = Vec::new();
     buff.resize(4, 0u8);
@@ -92,16 +127,27 @@ pub fn get_custom_data(
     Ok(data)
 }
 
-pub fn send_data(s: &mut TcpStream, header: &DefaultHeader, custom_data: &Vec<u8>) {
+pub fn send_data(
+    s: &mut TcpStream,
+    header: &DefaultHeader,
+    custom_data: &Vec<u8>,
+    cipher: &RCipher,
+) {
     let json_data = to_string(header).unwrap();
-    let lenj = json_data.len();
+    let mut lenj = json_data.len();
+    lenj = lenj + (16 - lenj % 16);
     let mut lenb = [0u8; 4];
     for i in 0..4 {
         lenb[i] = ((lenj >> (3 - i) * 8) & 0xFF) as u8;
     }
     s.write(&lenb).unwrap();
-    s.write(json_data.as_bytes()).unwrap();
-    s.write(&custom_data).unwrap();
+    s.write(cipher.encript_data(json_data.as_bytes()).as_slice())
+        .unwrap();
+    if custom_data.len() > 0 {
+        s.write(cipher.encript_data(custom_data.as_slice()).as_slice())
+            .unwrap();
+    }
+    s.flush().unwrap()
 }
 
 #[derive(Serialize, Deserialize)]

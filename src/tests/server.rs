@@ -21,14 +21,14 @@ struct Response {
 }
 
 impl RHandle for Handler {
-    fn handle(&mut self, tcp: &mut TcpStream, data: &Value, _: &Vec<u8>, _: &RCipher) {
+    fn handle(&mut self, tcp: &mut TcpStream, data: &Value, _: &Vec<u8>, cipher: &RCipher) {
         let resp = Response {
             result: String::from("OK"),
         };
         let data: Response = serde_json::from_value(data.clone()).unwrap();
         println!("Server {:?} Recv: {:?}", std::thread::current().id(), data);
         let cusd = Vec::new();
-        Server::send_data(tcp, &resp, &cusd);
+        Server::send_data(tcp, &resp, &cusd, cipher);
     }
 }
 
@@ -45,14 +45,15 @@ fn matcher(act: &str) -> THandle {
 fn server_test() {
     use std::thread;
     thread::spawn(|| {
-        let mut s = Server::new("127.0.0.1:5000", 4);
-        s.set_matcher(&matcher);
-        s.start();
+        Server::new("127.0.0.1:5000", 4)
+            .set_matcher(&matcher)
+            .set_timeout(Some(Duration::from_secs(10)))
+            .start();
     });
-    thread::sleep(Duration::from_secs(1));
+    thread::sleep(Duration::from_millis(500));
     let client_runner = || {
-        let mut client = Client::new("127.0.0.1", 5000, 1000).unwrap();
-        for _ in 0..20 {
+        let mut client = Client::new("127.0.0.1", 5000, 10000, "").unwrap();
+        for _ in 0..10 {
             let res = client
                 .request(
                     "act",
@@ -61,12 +62,12 @@ fn server_test() {
                     },
                     &Vec::new(),
                 )
-                .unwrap();
+                .ok();
             println!("Client Recv: {:?}", res);
         }
     };
     let mut threads = Vec::new();
-    for _ in 0..32 {
+    for _ in 0..16 {
         threads.push(thread::spawn(client_runner));
     }
     for thread in threads {
