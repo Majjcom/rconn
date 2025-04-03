@@ -19,7 +19,6 @@ pub struct Server {
     tcp: TcpListener,
     const_key: String,
     matcher: Option<Arc<Mutex<FnMatcher>>>,
-    // pool: ThreadPool,
     tko_runtime: Arc<Box<Runtime>>,
     timeout_dur: Option<Duration>,
     max_stream_header_size: u64,
@@ -29,10 +28,6 @@ pub struct Server {
 impl Server {
     pub fn new(addr: &str, threads: usize) -> Server {
         let tcp = TcpListener::bind(addr).unwrap();
-        // let pool = ThreadPoolBuilder::new()
-        //     .num_threads(threads)
-        //     .build()
-        //     .unwrap();
         let tko_runtime = Arc::new(Box::new(
             tokio::runtime::Builder::new_multi_thread()
                 .enable_all()

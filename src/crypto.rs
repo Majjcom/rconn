@@ -22,10 +22,16 @@ impl RCipher {
     }
 
     pub fn gen_key() -> [u8; 16] {
+        const KEY_MAP: [char; 62] = [
+            'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q',
+            'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7',
+            '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
+            'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+        ];
         let mut key = [0u8; 16];
         let mut r = rng();
         for i in 0..16 {
-            key[i] = r.random_range(('A' as u8)..=('Z' as u8));
+            key[i] = KEY_MAP[r.random_range(0..KEY_MAP.len())] as u8;
         }
         key
     }
